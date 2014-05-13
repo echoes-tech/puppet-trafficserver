@@ -1,0 +1,47 @@
+#!/bin/bash
+
+<%- if @balancer_backend and not @balancer_backend.empty? -%>
+<%- @balancer_backend.each do |backend1,backend2| -%>
+backend1=<%= backend1 %>
+backend2=<%= backend2 %>
+<%-   end -%>
+<%- end -%>
+
+
+header='/tmp/header_backend.tmp'
+prefix=<%= @prefix %>
+prefix_config="$prefix/etc/trafficserver"
+
+function healthCheck {
+ip=$1
+curl --head "$ip" > "$header"
+
+if test -s "$header" 
+then
+
+  httpStatusCode=`cat "$header" | sed -n "1 p" | cut -d" " -f2`
+  rm $header
+  if [[ $httpStatusCode != 20[0-6] && $httpStatusCode != 30[0-9] ]]; then
+    #   Serveur web error
+    reconfigureAts $ip
+  fi
+  else
+    # Serveur web ou machine non operationnel
+    reconfigureAts $ip
+fi
+rm "$header"
+}
+
+function reconfigureAts {
+ipDeadBackend=$1
+  sed -i -e "s/\ @pparam=$ipDeadBackend//" $prefix_config/remap.config
+}
+
+if [ "$backend1" ] && [ "$backend2" ]; then
+  healthCheck $backend1
+  healthCheck $backend2
+fi
+  # Sans ce exit qui semble inutile, le script peut finir avec un code d'erreur a 1 
+  # a cause du 'rm "$header"' (fin de 'healthCheck $backend2'). Le fichier peut ou non exister a ce moment là
+ 
+exit 0

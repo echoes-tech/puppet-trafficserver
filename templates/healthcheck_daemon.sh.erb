@@ -1,0 +1,96 @@
+#!/bin/bash
+
+<%- if @balancer_backend and not @balancer_backend.empty? -%>
+<%- @balancer_backend.each do |backend1,backend2| -%>
+backend1=<%= backend1 %>
+backend2=<%= backend2 %>
+<%-   end -%>
+<%- end -%>
+
+header=/tmp/header_backend.tmp
+prefix=<%= @prefix %>
+prefix_config="$prefix/etc/trafficserver"
+timeRepetition=1
+cmdReloadAts="service trafficserver restart"
+rm $header
+
+# Health Check web server with ip in param $1
+function alive {
+  ip=$1
+  curl --head "$ip" > "$header"
+
+  if test -s $header 
+  then
+    httpStatusCode=`cat "$header" | sed -n "1 p" | cut -d" " -f2`
+    rm "$header"
+    
+    if [[ $httpStatusCode != 20[0-6] && $httpStatusCode != 30[0-9] ]]; then
+      # Serveur web error
+      return 1
+      # reconfigureAts $ip
+    fi
+  else
+    # Serveur web ou machine non operationnel
+    # reconfigureAts $ip
+    rm "$header"
+    return 1
+  fi
+  return 0 # Serveur opé
+}
+
+# Change ATS conf
+# Retire de la conf l'ip donne en parametre $1
+function reconfigureAtsDeadOne {
+  ipDeadBackend=$1
+  cat $prefix_config/remap.config > /tmp/diff_remap.config
+  sed -i -e "s/\ @pparam=$ipDeadBackend//" $prefix_config/remap.config
+  diff /tmp/diff_remap.config $prefix_config/remap.config
+  if [ $? -eq 1 ]
+  then
+    `$cmdReloadAts`
+  fi
+}
+
+# Change ATS conf 
+# Ajoute à la conf le backend 
+function reconfigureAtsAliveOne {
+  ipAliveBackend=$1
+
+  # Teste si ipAliveBackend est deja dans la conf d'ATS
+  cat $prefix_config/remap.config | grep @pparam=$ipAliveBackend
+  if [ $? -eq 0 ]; then
+    # Si tel est le cas, on quitte la fonction reconfigureAliveAts
+    return 0
+  fi
+  echo `cat $prefix_config/remap.config | grep '^map.*@plugin=balancer.so'` " @pparam=$ipAliveBackend" > $prefix_config/remap.config
+  `$cmdReloadAts`
+}
+
+# Suivant la reponse de alive, decide comment il faut modifier la config d'ATS
+function reconfigManagmt {
+  backendip=$1
+  if [ "$backendip" ]; then 
+    if alive $backendip;then
+      reconfigureAtsAliveOne $backendip
+    else
+      reconfigureAtsDeadOne $backendip
+    fi
+  fi
+}
+
+index=0
+tabBackendip[0]="$backend1";
+tabBackendip[1]="$backend2";
+
+while [ 1 -eq 1 ]; do
+  # To avoid unexpected config modification, this script does nothing if $backend* unset
+  if [ "$backend1" ] && [ "$backend2" ]; then
+    reconfigManagmt ${tabBackendip[$index]}
+    if [ $index -eq 0 ]; then
+      index=1
+    else
+      index=0
+    fi
+    sleep $timeRepetition
+  fi
+done
