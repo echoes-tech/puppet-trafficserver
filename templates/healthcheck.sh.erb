@@ -14,12 +14,13 @@ prefix_config="$prefix/etc/trafficserver"
 
 function healthCheck {
 ip=$1
-curl --head "$ip" > "$header"
+curl --write-out %{http_code} --silent --output /dev/null "$ip" > "$header"
+#curl --head "$ip" > "$header"
 
 if test -s "$header" 
 then
 
-  httpStatusCode=`cat "$header" | sed -n "1 p" | cut -d" " -f2`
+  httpStatusCode=`cat "$header"`
   rm $header
   if [[ $httpStatusCode != 20[0-6] && $httpStatusCode != 30[0-9] ]]; then
     #   Serveur web error

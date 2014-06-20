@@ -26,13 +26,13 @@ class trafficserver::healthcheck
     group   => 'root',
     mode    => '0754',
     content => template('trafficserver/healthcheck_daemon.sh.erb'),
-  }
+  }->
 
-  #exec { "$bindir/traffic_healthcheck_daemon.sh &":
-  #path    => [
-  #  '/usr/local/bin',
-  #  '/usr/bin',
-  #  '/bin'],
-  #unless  => 'ps aux | grep \'[t]raffic_healthcheck_daemon.sh\' > /dev/null',
-  #}
+  exec { "$bindir/traffic_healthcheck_daemon.sh &":
+  path    => [
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin'],
+  unless  => 'ps aux | grep \'[t]raffic_healthcheck_daemon.sh\' > /dev/null',
+  }
 }

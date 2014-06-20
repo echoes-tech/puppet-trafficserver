@@ -18,6 +18,17 @@ class trafficserver::config inherits trafficserver {
 
   include 'trafficserver::storage'
 
+   $balancer_map = [
+    'http://23.236.50.251',
+   ]
+   $balancer_algo = [
+    'roundrobin',
+   ]
+   $balancer_backend = {
+    '192.168.0.101' => '192.168.0.124',
+   }
+
+
   $port_changes = [ "set proxy.config.http.server_ports \"${port}\"" ]
   trafficserver::config::records { 'port':
     changes => $port_changes,
@@ -58,29 +69,20 @@ class trafficserver::config inherits trafficserver {
       }
     }
   }
-      $balancer_map = [
-        'http://23.236.50.251/'
-      ]
-      $balancer_algo = [
-        'roundrobin',
-      ]
-      $balancer_backend = {
-        '192.168.0.181' => '192.168.0.144',
-      }
-
-      class { 'trafficserver::healthcheck' :
-        balancer_map      => $balancer_map,
-        balancer_algo     => $balancer_algo,
-        balancer_backend  => $balancer_backend,
-      }
-        
-      trafficserver::config::remap { 'example_balancer':
-        balancer_map      => $balancer_map,
-        balancer_backend  => $balancer_backend,
-        balancer_algo     => $balancer_algo,
-        before            => Exec['trafficserver-healthcheck'],
-        notify            => Exec['trafficserver-config-reload'],
-      }
+       
+  trafficserver::config::remap { 'example_balancer':
+    balancer_map      => $balancer_map,
+    balancer_backend  => $balancer_backend,
+    balancer_algo     => $balancer_algo,
+    notify            => Exec['trafficserver-config-reload'],
+  }
+  if $healthcheck {
+    class {'trafficserver::healthcheck' :
+      balancer_map      => $balancer_map,
+      balancer_backend  => $balancer_backend,
+      balancer_algo     => $balancer_algo,
+    }
+  }
   # And finally, create an exec here to reload
   exec { 'trafficserver-config-reload':
     path        => $bindir,

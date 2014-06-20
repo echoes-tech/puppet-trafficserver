@@ -76,6 +76,6 @@ define trafficserver::config::remap (
     context => $context,
     incl    => $incl,
     changes => template('trafficserver/remap.config.erb'),
-    notify  => Exec[trafficserver-config-reload],
+    notify  => [ Exec[trafficserver-config-reload], Exec[trafficserver-healthcheck] ],
   }
 }

@@ -59,6 +59,7 @@ class trafficserver (
   $ssl_default = undef,
   $records     = undef,
   $install     = $trafficserver::params::install,
+  $healthcheck = $trafficserver::params::healthcheck,
 ) inherits trafficserver::params {
 
   $port = $ssl? {
