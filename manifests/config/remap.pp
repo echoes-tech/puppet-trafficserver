@@ -76,6 +76,13 @@ define trafficserver::config::remap (
     context => $context,
     incl    => $incl,
     changes => template('trafficserver/remap.config.erb'),
-    notify  => [ Exec[trafficserver-config-reload], Exec[trafficserver-healthcheck] ],
+    notify  => [ Exec[trafficserver-config-reload] ],
+  }
+
+  if $healthcheck {
+    exec { 'trafficserver-healthcheck':
+      command     => "$bindir/traffic_healthcheck.sh", 
+      require     => File["$bindir/traffic_healthcheck.sh"],
+    }
   }
 }

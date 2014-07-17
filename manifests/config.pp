@@ -18,17 +18,6 @@ class trafficserver::config inherits trafficserver {
 
   include 'trafficserver::storage'
 
-   $balancer_map = [
-    'http://23.236.50.251',
-   ]
-   $balancer_algo = [
-    'roundrobin',
-   ]
-   $balancer_backend = {
-    '192.168.0.101' => '192.168.0.124',
-   }
-
-
   $port_changes = [ "set proxy.config.http.server_ports \"${port}\"" ]
   trafficserver::config::records { 'port':
     changes => $port_changes,
@@ -83,7 +72,7 @@ class trafficserver::config inherits trafficserver {
       balancer_algo     => $balancer_algo,
     }
   }
-  # And finally, create an exec here to reload
+
   exec { 'trafficserver-config-reload':
     path        => $bindir,
     command     => 'traffic_line -x',

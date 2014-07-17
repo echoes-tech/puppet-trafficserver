@@ -1,6 +1,7 @@
 class trafficserver::firewall
 (
-  $todest  = undef,
+  $todest80   = undef,
+  $todest443  = undef,
 )
 {
 firewall { '010 Foreward http to ats':
@@ -10,6 +11,16 @@ firewall { '010 Foreward http to ats':
   chain   => 'PREROUTING',
   table   => 'nat',
   iniface => 'eth0',
-  todest  => "${todest}:80",
+  todest  => "${todest80}:80",
+  }
+
+firewall { '011 Foreward https to ats':
+  dport   => [ 443 ],
+  proto   => 'tcp',
+  jump    => 'DNAT',
+  chain   => 'PREROUTING',
+  table   => 'nat',
+  iniface => 'eth0',
+  todest  => "${todest443}:443",
   }
 }

@@ -15,7 +15,6 @@ class trafficserver::healthcheck
 
   exec { 'trafficserver-healthcheck':
     command     => "$bindir/traffic_healthcheck.sh", 
-    #refreshonly => true,
   }->
 
   Exec['trafficserver-config-reload']
