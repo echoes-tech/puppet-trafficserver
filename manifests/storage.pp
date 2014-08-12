@@ -50,4 +50,17 @@ class trafficserver::storage inherits trafficserver {
       }
     }
   }
+  if is_hash($storage) and $storage {
+    # Parse path in hash $storage
+    $key = inline_template("<%= storage.keys %>") 
+    $key1=delete($key, '[')
+    $key2=delete($key1, ']')
+    $path=delete($key2, '"')
+
+    file { $key:
+      ensure    => 'directory',
+      owner     => "$user",
+      group     => "$group",
+    }
+  }
 }
